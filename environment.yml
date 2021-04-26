@@ -1,0 +1,8 @@
+name: shrm_clean
+
+channels:
+  - default
+  - conda-forge
+
+dependencies:
+  - python=3.8

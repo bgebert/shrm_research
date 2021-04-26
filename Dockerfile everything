@@ -1,0 +1,69 @@
+FROM continuumio/miniconda3
+## FROM ubuntu:latest
+MAINTAINER Brad Gebert, brad.gebert@shrm.org
+## ENV PATH="/root/miniconda3/bin:${PATH}"
+## ARG PATH="/root/miniconda3/bin:${PATH}"
+
+RUN apt-get update
+RUN apt-get upgrade -y
+## RUN apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+## RUN wget \
+##     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+##     && mkdir /root/.conda \
+##     && bash Miniconda3-latest-Linux-x86_64.sh -b \
+##     && rm -f Miniconda3-latest-Linux-x86_64.sh 
+## RUN conda --version
+
+## RUN ~/miniconda3/bin/conda init bash
+## RUN ~/miniconda3/bin/conda init zsh
+## RUN cd ~/
+## RUN mkdir -p /app
+## RUN cd /app
+
+WORKDIR /app
+
+# Create the environment:
+COPY . .
+RUN conda env create -f environment.yaml
+
+# Make RUN commands use the new environment:
+SHELL ["conda", "run", "-n", "shrm_clean", "/bin/bash", "-c"]
+
+# RUN conda activate shrm_clean
+## RUN pip install pandas
+## RUN pip install jupyterlab
+## RUN pip install jupyterlab_widgets
+## RUN pip install ipywidgets
+## RUN pip install qgrid
+## RUN pip install nodejs
+## RUN pip install jupyter_contrib_nbextensions
+
+RUN conda install -y -c conda-forge nodejs
+RUN conda install -y -c conda-forge/label/gcc7 nodejs
+RUN conda install -y -c conda-forge/label/cf201901 nodejs
+RUN conda install -y -c conda-forge/label/cf202003 nodejs
+RUN conda install -y pandas        # includes numpy
+RUN conda install -y jupyterlab    # includes ipython, ipykernel
+RUN conda install -y jupyterlab_widgets
+RUN conda install -y ipywidgets    # includes widgetsnbextension
+RUN conda install -y qgrid
+
+
+## RUN jupyter labextension install @jupyter-widgets/jupyterlab-manager
+## RUN jupyter nbextension enable --py widgetsnbextension
+## RUN jupyter nbextension enable --py --sys-prefix qgrid
+## RUN jupyter nbextension enable --py --sys-prefix widgetsnbextension
+## RUN ipython kernel install --user --name=shrm_clean     # configure Jupyter to use Python kernel
+
+
+# Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
+## ENV TINI_VERSION v0.6.0
+## ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
+## RUN chmod +x /usr/bin/tini
+## ENTRYPOINT ["/usr/bin/tini", "--"]
+
+EXPOSE 8888                                           
+ENTRYPOINT ["jupyter", "notebook", "--no-browser","--ip=0.0.0.0","--NotebookApp.token=''","--NotebookApp.password=''"]
+
+## CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]

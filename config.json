@@ -1,0 +1,20 @@
+{
+    "APP_CONFIG": {
+        "csv_separator": ",",
+        "current_excel_tab": "CURRENT",
+        "email_error": ["brad.gebert@shrm.org"],
+        "email_info": ["brad.gebert@shrm.org"],
+        "prev_processed_key": "FILENAME",
+        "prevprocessed_filename": "prevProcessed.csv"
+    },
+    "SERVER_CONFIG": {
+        "savepath_csv": "/Volumes/share/Collaboration/Certification/05-Exam/Data/*_current/Pass Rates/Overall Pass Rates Table - csv",
+        "savepath_excel": "/Volumes/share/Collaboration/Certification/05-Exam/Data/*_current/Tracking pass rates_current.xlsx",
+        "savepath_success": "/Volumes/share/Collaboration/Certification/05-Exam/Data/humrro_govftp_com.log"
+    },
+    "SOURCE_SITE": {
+        "pwd": "",
+        "uid": "",
+        "url": ""
+    }
+}
