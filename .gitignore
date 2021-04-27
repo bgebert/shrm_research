@@ -136,3 +136,4 @@ dmypy.json
 tmp/
 *_copy.ipynb
 */*/*_copy.ipynb
+*/*/data/

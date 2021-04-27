@@ -1,5 +1,4 @@
 FROM jupyter/scipy-notebook:latest
-MAINTAINER Brad Gebert, brad.gebert@shrm.org
 
 # reset user to root for installing additional packages
 USER root
@@ -14,10 +13,13 @@ WORKDIR /home/jovyan
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Create the environment:
-# NOTE: The presence of jupyter_notebook_config.json in the root dir is... 
+# NOTE: The presence of jupyter_notebook_config.json in the root dir is ... 
 #       enough to surpress the token/pwd of jupyter notebooks
-COPY . .
 #COPY jupyter_notebook_config.json /opt/conda/etc/jupyter/jupyter_notebook_config.json
+COPY jupyter_notebook_config.json .
+COPY update_notebooks.ipynb .
+COPY README.md .
+COPY environment.yml .
 COPY command.sh /bin
 
 # remove directory created by jupyter/scipy-notebook image
@@ -26,14 +28,14 @@ RUN rm -rf work
 RUN conda env create -f environment.yml
 
 # Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "shrm_clean", "/bin/bash", "-c"]
+SHELL ["conda", "run", "-n", "shrm_research", "/bin/bash", "-c"]
 
-RUN echo "source activate shrm_clean" > ~/.bashrc
-ENV PATH /opt/conda/envs/shrm_clean/bin:$PATH
+RUN echo "source activate shrm_research" > ~/.bashrc
+ENV PATH /opt/conda/envs/shrm_research/bin:$PATH
 
-RUN conda install -y qgrid
+#RUN conda install -y qgrid
 
-#RUN ipython kernel install --user --name=shrm_clean     # configure Jupyter to use Python kernel
+#RUN ipython kernel install --user --name=shrm_research     # configure Jupyter to use Python kernel
 
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
 #ENV TINI_VERSION v0.6.0
