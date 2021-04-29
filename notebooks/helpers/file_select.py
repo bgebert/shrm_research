@@ -13,5 +13,5 @@ if __name__ == "__main__":
     directory = argv[1]
     app = QApplication([directory])
     fname = QFileDialog.getOpenFileName(None, "Select a file...", 
-            directory, filter="CSV files (*.csv)")
+            directory, filter="All files (*)")
     print(fname[0])
