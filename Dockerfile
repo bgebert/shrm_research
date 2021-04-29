@@ -35,6 +35,14 @@ ENV PATH /opt/conda/envs/shrm_research/bin:$PATH
 
 #RUN conda install -y qgrid
 
+RUN jupyter contrib nbextension install --sys-prefix
+RUN jupyter nbextension enable collapsible_headings/main --sys-prefix
+RUN jupyter nbextension enable toc2/main --sys-prefix
+RUN jupyter nbextension enable skip-traceback/main --sys-prefix
+RUN jupyter nbextension enable codefolding/main --sys-prefix
+RUN jupyter nbextension enable scroll_down/main --sys-prefix
+RUN jupyter nbextension enable toggle_all_line_numbers/main --sys-prefix
+
 #RUN ipython kernel install --user --name=shrm_research     # configure Jupyter to use Python kernel
 
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.

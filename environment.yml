@@ -8,3 +8,5 @@ dependencies:
   - python=3.8
   - qgrid
   - matplotlib
+  - jupyter_contrib_nbextensions
+  - jupyter_nbextensions_configurator
