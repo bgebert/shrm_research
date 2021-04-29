@@ -11,6 +11,9 @@ from IPython.core.display import display, HTML
 
 CSV_SEPARATOR = ','     # '\t'
 
+FLDR_SAMPLING = '../sampling'
+FLDR_NOTEBOOKS = '../notebooks'
+
 COL_COUNT = 'count'
 COL_KEEP = 'keep'
 
