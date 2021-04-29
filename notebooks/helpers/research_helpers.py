@@ -45,6 +45,25 @@ KEEP_LIST_EXPIRES_IN = [
     EXPIRES_IN_MORE_THAN_180
     ]
 
+KEEP_LIST_JOB_TITLES = [
+    "",
+    "Administrative Assistant ",
+    "Administrator",
+    "Asst. or Assoc. Vice Pres",
+    "CHRO, CHCO",
+    "Coordinator",
+    "Director or Asst/Assoc Director",
+    "Legal Counsel",
+    "Manager, Generalist",
+    "Other",
+    "Partner, Principal",
+    "President, CEO, Chairman",
+    "Representative, Associate",
+    "Specialist",
+    "Supervisor",
+    "VP or Asst/Assoc VP"
+    ]
+
 KEEP_LIST_MEMBERSHIP_ITEMS = [
     "Affinity Membership",
     "Corporate Membership",
