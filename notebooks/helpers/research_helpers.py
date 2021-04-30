@@ -7,7 +7,10 @@ import datetime
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
+from ipywidgets import *
 from IPython.core.display import display, HTML
+
+dict_filter_by = {}     # Used by keep_grid_show_filter
 
 CSV_SEPARATOR = ','     # '\t'
 
@@ -170,7 +173,7 @@ def assign_title(df):
 
     df[COL_TITLE_CALCULATED] = df.apply(lambda x: __assign_title(x[COL_JOB_TITLE].strip(), x[COL_BOSS_TITLE].strip(), x[COL_NUM_OVERSEEN].strip(), mgmt_titles), axis=1)
     
-    print('Assigned Titles.')
+    print('Assigned Manager/Worker Title.')
     
     return df
 
@@ -214,6 +217,29 @@ def assign_expiration_range(df):
     return df
 
 def keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, bkeep_all = False):
+    action_name  = column_to_group_by + '_'
+
+    #dict_filter_by = {}
+    dict_filter_by[action_name + 'label'] = widgets.HTML()
+    dict_filter_by[action_name + 'label'].value = '<center><h3>Your current record count is <u>{}</u></h3></center>'.format(len(df))
+    dict_filter_by[action_name + 'results_widgets'] = widgets.HBox([dict_filter_by[action_name + 'label']])
+
+    def handle_all_events(event, qgrid_widget):
+        df_testing = keep_grid_apply_filter(dict_filter_by[action_name + 'qgrid_sheet_to_keep'], column_to_group_by, df)
+        dict_filter_by[qgrid_widget.action_name + 'label'].value = '<h3>Your possible record count is <b><u>{}</u></b> out of <u>{}</u></h3>'.format(len(df_testing), len(df))
+
+    # Allow user's to select which groups, if any, they want to keep
+    dict_filter_by[action_name + 'qgrid_sheet_to_keep'] = __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array)
+    setattr(dict_filter_by[action_name + 'qgrid_sheet_to_keep'], 'action_name', action_name)
+    handle_all_events(None, dict_filter_by[action_name + 'qgrid_sheet_to_keep'])
+
+    dict_filter_by[action_name + 'qgrid_sheet_to_keep'].on('cell_edited', handle_all_events)
+    dict_filter_by[action_name + 'dashboard'] = widgets.VBox([dict_filter_by[action_name + 'results_widgets'], dict_filter_by[action_name + 'qgrid_sheet_to_keep']])
+    display(dict_filter_by[action_name + 'dashboard'])
+
+    return dict_filter_by[action_name + 'qgrid_sheet_to_keep']
+
+def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, bkeep_all = False):
     msg_html = '<h1>Important:</h1></br><b>Please examine the list below and check/uncheck any record types you do not wish to use.</br></br>NOTE: </b><span>The default list has already been pre-selected.</span>'
     display(HTML(msg_html))
     
@@ -241,10 +267,10 @@ def keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, b
     #sheet_keep = from_dataframe(df_possible)
     #return sheet_keep
 
-    qgrid_widget = qgrid.show_grid(df_possible, show_toolbar=False)
+    qgrid_widget = qgrid.show_grid(df_possible, show_toolbar=False, grid_options={"maxVisibleRows": 10})
     return qgrid_widget
 
-def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df):
+def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False):
     ### Apply filtering
     ### qgrid method to convert sheet to df
     df_filter_by = qgrid_sheet_to_keep.get_changed_df()
@@ -255,9 +281,10 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df):
     len_before_filter = len(df)
     df_filtered_list = df[df[col_name].isin(arr_keep)] 
     len_after_filter = len(df_filtered_list)
-    
-    print('The filter was successfully applied to the data frame.')
-    print('There are {} out of {} email addresses available for use.'.format(len_after_filter, len_before_filter))
+
+    if bShowUpdate:
+        print('The filter was successfully applied to the data frame.')
+        print('There are now {} out of {} email addresses available for use.'.format(len_after_filter, len_before_filter))
 
     return df_filtered_list
 
