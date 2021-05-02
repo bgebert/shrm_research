@@ -277,7 +277,7 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False)
     df_filter_by = df_filter_by[df_filter_by[COL_KEEP] == True]
 
     arr_keep = df_filter_by[col_name].tolist()
-
+    
     len_before_filter = len(df)
     df_filtered_list = df[df[col_name].isin(arr_keep)] 
     len_after_filter = len(df_filtered_list)
@@ -286,7 +286,10 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False)
         print('The filter was successfully applied to the data frame.')
         print('There are now {} out of {} email addresses available for use.'.format(len_after_filter, len_before_filter))
 
-    return df_filtered_list
+    if bShowUpdate:
+        return df_filtered_list, arr_keep
+    else:
+        return df_filtered_list
 
 def load_csv(file_name):
     df = pd.read_csv (file_name , sep=CSV_SEPARATOR)
