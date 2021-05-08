@@ -44,6 +44,8 @@ EXPIRES_WITHIN_90 = '(6) Expires within 90 days'
 EXPIRES_WITHIN_180 = '(7) Expires within 180 days'
 EXPIRES_IN_MORE_THAN_180 = '(8) Expires in more than 180'
 
+KEEP_LIST_SURVEY_DIRS = []
+
 KEEP_LIST_EXPIRES_IN = [
     EXPIRES_WITHIN_30,
     EXPIRES_WITHIN_90,
@@ -243,10 +245,14 @@ def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array,
     msg_html = '<h1>Important:</h1></br><b>Please examine the list below and check/uncheck any record types you do not wish to use.</br></br>NOTE: </b><span>The default list has already been pre-selected.</span>'
     display(HTML(msg_html))
     
-    df[column_to_group_by] = df[column_to_group_by].fillna('')
-    df_possible = df.groupby(column_to_group_by)[column_to_count].nunique()
-    df_possible = df_possible.reset_index()
-    df_possible = df_possible.rename(columns={column_to_count: COL_COUNT})
+    if column_to_count is None:
+        df_possible = df
+        df_possible = df_possible.reset_index()
+    else:
+        df[column_to_group_by] = df[column_to_group_by].fillna('')
+        df_possible = df.groupby(column_to_group_by)[column_to_count].nunique()
+        df_possible = df_possible.reset_index()
+        df_possible = df_possible.rename(columns={column_to_count: COL_COUNT})
 
     if keep_array is None:
         df_possible = df_possible.sort_values([column_to_group_by], ascending = (True))
@@ -263,7 +269,7 @@ def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array,
             df_possible.at[i,COL_KEEP] = bKeep
 
         df_possible = df_possible.sort_values([COL_KEEP, column_to_group_by], ascending = (True, True))
-
+        
     #sheet_keep = from_dataframe(df_possible)
     #return sheet_keep
 
@@ -284,7 +290,7 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False)
 
     if bShowUpdate:
         print('The filter was successfully applied to the data frame.')
-        print('There are now {} out of {} email addresses available for use.'.format(len_after_filter, len_before_filter))
+        print('There are now {} out of {} items available for use.'.format(len_after_filter, len_before_filter))
 
     if bShowUpdate:
         return df_filtered_list, arr_keep

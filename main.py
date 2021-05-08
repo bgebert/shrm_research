@@ -8,6 +8,7 @@ import shrm_utilities
 from numpy.lib.utils import source
 
 ####    Import Libraries
+import sqlite3 as sl
 import csv
 import os
 import os.path
@@ -541,120 +542,6 @@ def mergeRaw_Years(sourceDir, outputFileName):
         #outputFile.write(primary_key + '\n')
         pass
 
-def defineMgmtVsWorkers(df):
-    JOB_TITLE = 'job_title'
-    BOSS_TITLE = 'supervisor_title'
-    NUM_OVERSEEN = 'employee_oversee'
-    TITLE_CALCULATED = 'title_calculated'
-
-    df[TITLE_CALCULATED] = 'Worker'
-
-    mgmtTitles = ["Partner, Principal","President, CEO, Chairman","CHRO, CHCO","VP or Asst/Assoc VP","Asst. or Assoc. Vice Pres","Director or Asst/Assoc Director","Supervisor"]
-    mgmtTitles = [title.lower() for title in mgmtTitles]
-
-    nonmgmtTitles = ["Consultant","Coordinator","Legal Counsel","Representative, Associate","Specialist","Other","Administrative Assistant","Administrator"]
-    nonmgmtTitles = [title.lower() for title in nonmgmtTitles]
-
-    #df[JOB_TITLE].str.lower()
-    #df[BOSS_TITLE].str.lower()
-
-    df[JOB_TITLE] = df[JOB_TITLE].fillna('')
-    df[BOSS_TITLE] = df[BOSS_TITLE].fillna('')
-    df[NUM_OVERSEEN] = df[NUM_OVERSEEN].fillna('')
-
-    for i, row in df.iterrows():
-        title = ''
-        if i == 628:
-            print('{}'.format(i))
-        #try:
-        str_job_title = row[JOB_TITLE].lower()
-        #except:
-        #    str_job_title = ''
-
-        #try:
-        str_boss_title = row[BOSS_TITLE].lower()
-        #except:
-        #    str_boss_title = ''
-
-        #try:
-        str_num_overseen = row[NUM_OVERSEEN]
-        #except:
-        #    str_num_overseen = ''
-        
-        member_id = row['member_id']
-        #print('{} ({}) row, Job Title == "{}", Boss Title == "{}", Num Overseen == "{}"'.format(i,member_id,str_job_title,str_boss_title,str_num_overseen))
-
-        if len(str_job_title) == 0:
-            title = 'Worker'
-        elif str_job_title in mgmtTitles:
-            title = 'Manager'
-        elif str_job_title in nonmgmtTitles:
-            title = 'Worker'
-        elif len(str_boss_title) == 0 or len(str_num_overseen) == 0:
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and (str_boss_title == "administrator" or str_boss_title == "hr manager" or str_num_overseen == "0"):
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and str_boss_title != "administrator" and str_boss_title != "hr manager" and str_num_overseen != "0":
-            title = 'Manager'
-        else:
-            title = 'Worker'
-
-        if title == 'Manager':
-            df[i, TITLE_CALCULATED] = title
-            print('{} ({}) row, Job Title == "{}", Boss Title == "{}", Num Overseen == "{}", Title Calculated == "{}"'.format(i,member_id,str_job_title,str_boss_title,str_num_overseen,title))
-        
-    return df
-
-def __assign_title(str_job_title, str_boss_title, str_num_overseen, mgmt_titles):
-
-    title = 'Worker'
-    try:
-        """
-        if str_job_title.lower() in mgmt_titles:
-            title = 'Manager'
-        elif str_job_title == "Manager, Generalist" and str_boss_title.lower() != "administrator" and str_boss_title.lower() != "hr manager" and str_num_overseen != "0":
-            title = 'Manager'
-        """
-        if len(str_job_title) == 0:
-            title = 'Worker'
-        elif str_job_title.lower() in mgmt_titles:
-            title = 'Manager'
-        elif len(str_boss_title) == 0 or len(str_num_overseen) == 0:
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and (str_boss_title.lower() == "administrator" or str_boss_title.lower() == "hr manager" or str_num_overseen == "0"):
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and str_boss_title.lower() != "administrator" and str_boss_title.lower() != "hr manager" and str_num_overseen != "0":
-            title = 'Manager'
-        else:
-            title = 'Worker'
-    except:
-        raise Exception('Houston, we have a problem')
-
-    return title
-
-def assign_title(df):
-    #Who is a manager vs. a worker> To align with BLS, if they have a manager job title, Manager, otherwise worker. 
-    #Our category "Manager, Generalist" is ambiguous, so if they report to a manager or administrator, or have no direct reports we treat them as worker
-            
-    JOB_TITLE = 'job_title'
-    BOSS_TITLE = 'supervisor_title'
-    NUM_OVERSEEN = 'employee_oversee'
-    TITLE_CALCULATED = 'title_calculated'
-
-    mgmt_titles = ["Partner, Principal","President, CEO, Chairman","CHRO, CHCO","VP or Asst/Assoc VP","Asst. or Assoc. Vice Pres","Director or Asst/Assoc Director","Supervisor"]
-    mgmt_titles = [title.lower() for title in mgmt_titles]
-
-    #nonmgmtTitles = ["Consultant","Coordinator","Legal Counsel","Representative, Associate","Specialist","Other","Administrative Assistant","Administrator"]
-    #nonmgmtTitles = [title.lower() for title in nonmgmtTitles]
-
-    df[JOB_TITLE] = df[JOB_TITLE].fillna('')
-    df[BOSS_TITLE] = df[BOSS_TITLE].fillna('')
-    df[NUM_OVERSEEN] = df[NUM_OVERSEEN].fillna('')
-
-    df[TITLE_CALCULATED] = df.apply(lambda x: __assign_title(x[JOB_TITLE], x[BOSS_TITLE], x[NUM_OVERSEEN], mgmt_titles), axis=1)
-    
-    return df
-
 def _callback_process(research_type):
     try:
         start_time = time.time()
@@ -779,8 +666,7 @@ def _callback_process(research_type):
         shrm_mailer.send_email('Error: Failed inside membership_roster_prep','Error\n\nFailed inside membership_roster_prep - _callback_process\n\n error:\n\n', True, [], shrm_config.get_configVal(shrm_config.SECTION_APP_CONFIG, 'email_error'), shrm_logger, shrm_config)
         #outputFile.write(primary_key + '\n')
         pass
-    
-    
+
 try:
     start_time = time.time()
     print('Started SCRIPT at ' + str(datetime.now()))
