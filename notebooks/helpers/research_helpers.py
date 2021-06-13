@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import qgrid
 import datetime
+import glob
 
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -10,16 +11,45 @@ from pandas.api.types import is_numeric_dtype
 from ipywidgets import *
 from IPython.core.display import display, HTML
 
+from collections import OrderedDict
+
+ARRAY_FOLDERS_TO_IGNORE = ['.ipynb_checkpoints', 
+                           'About the Member Population', 
+                           'Archive', 
+                           'AllActive', 
+                           'Brad', 
+                           'Member Lists', 
+                           'notebooks', 
+                           'Opt Out Lists', 
+                           'Sampling R Code']
+
+#OPTIONS_CSV_COLUMNS = []
+#OPTIONS_EXISTING_PROJECTS = []
+#OPTIONS_LOCATIONS = []
+#OPTIONS_YES_NO = ['Yes','No']
+#OPTIONS_NEW_PROJECT = ['<New Project>']
+#OPTIONS_PREV_DATAFRAMES = ['<Revert to previous state (dataframe)>']
+
+dict_keep_lists = {}    # Used to keep dictionary of arrays used to pre-select items used in qgrid filtering
+dict_dataframes = {}    # Used to keep track of order of changes to the active roster list 
 dict_filter_by = {}     # Used by keep_grid_show_filter
+
+#grid_work_do = None
 
 CSV_SEPARATOR = ','     # '\t'
 
+FLDR_MEMBER_LISTS = 'Member Lists'
 FLDR_SAMPLING = '../sampling'
 FLDR_NOTEBOOKS = '../notebooks'
 
+FNAME_ACTIVE_ROSTER_CSV = 'all_active.csv'
+
 COL_COUNT = 'count'
 COL_KEEP = 'keep'
+COL_REMOVE = 'remove'
 
+"""
+COL_EMAIL = 'email'
 COL_EXPIRY_DATE = 'expiration_date'
 COL_EXPIRY_RANGE_CALCULATED = 'expiration_range_calculated'
 COL_MEMBER_ID = 'member_id'
@@ -35,6 +65,9 @@ COL_BOSS_TITLE = 'supervisor_title'
 COL_NUM_OVERSEEN = 'employee_oversee'
 COL_TITLE_CALCULATED = 'title_calculated'
 
+COL_REGION_CALCULATED = 'region_calculated'
+COL_LOCATION_CALCULATED = 'location_calculated'
+
 EXPIRED_IN_MORE_THAN_180 = '(1) Expired more than 180 days'
 EXPIRED_WITHIN_180 = '(2) Expired within 180 days'
 EXPIRED_WITHIN_90 = '(3) Expired within 90 days'
@@ -44,6 +77,7 @@ EXPIRES_WITHIN_90 = '(6) Expires within 90 days'
 EXPIRES_WITHIN_180 = '(7) Expires within 180 days'
 EXPIRES_IN_MORE_THAN_180 = '(8) Expires in more than 180'
 
+
 KEEP_LIST_SURVEY_DIRS = []
 
 KEEP_LIST_EXPIRES_IN = [
@@ -52,8 +86,21 @@ KEEP_LIST_EXPIRES_IN = [
     EXPIRES_WITHIN_180,
     EXPIRES_IN_MORE_THAN_180
     ]
+"""
 
-KEEP_LIST_JOB_TITLES = [
+COL_EMAIL = 'email'
+COL_EXPIRY_DATE = 'expiration_date'
+COL_JOB_TITLE = 'job_title'
+COL_LOCATION_CALCULATED = 'location_calculated'
+COL_MEMBER_ID = 'member_id'
+COL_MEMBERSHIP_ITEM = 'membership_item'
+COL_REGION_CALCULATED = 'region_calculated'
+
+dict_keep_lists[COL_LOCATION_CALCULATED] = [
+    "US"
+    ]
+
+dict_keep_lists[COL_JOB_TITLE] = [
     "",
     "Administrative Assistant ",
     "Administrator",
@@ -72,7 +119,7 @@ KEEP_LIST_JOB_TITLES = [
     "VP or Asst/Assoc VP"
     ]
 
-KEEP_LIST_MEMBERSHIP_ITEMS = [
+dict_keep_lists[COL_MEMBERSHIP_ITEM] = [
     "Affinity Membership",
     "Corporate Membership",
     "Corporate Membership-three month extention",
@@ -94,134 +141,71 @@ KEEP_LIST_MEMBERSHIP_ITEMS = [
     "SHRM Life Membership Renewal"
     ]
 
-def __assign_assign_pub_private_sector(str_org_type, str_industry, str_email_domain):
+dict_keep_lists[COL_REGION_CALCULATED] = [
+    "",
+    "Northeast",
+    "South",
+    "Midwest",
+    "West"
+    ]
 
-    value = 'Private'
-    try:
-        if len(str_org_type) == 0 and len(str_industry) == 0:
-            value = 'Private'
-        elif len(str_org_type) == 0 and (str_industry == "Education" or str_industry == "Government"):
-            value = 'pub_ed'
-        elif len(str_org_type) == 0 and str_industry != "Education" and str_industry != "Government":
-            value = 'Private'
-        elif len(str_industry) == 0 and (str_org_type == "Govt Sector - Federal" or str_org_type == "Govt Sector - State/Local"):
-            value = 'pub_ed'
-        elif len(str_industry) == 0 and str_org_type != "Govt Sector - Federal" and str_org_type != "Govt Sector - State/Local":
-            value = 'Private'
-        elif str_email_domain[-4:] == '.gov':
-            value = 'pub_ed'
-        elif str_org_type == "Govt Sector - Federal" or str_org_type == "Govt Sector - State/Local" or str_industry == "Education" or str_industry == "Government":
-            value = 'pub_ed'
-        else:
-            value = 'Private'
-    except:
-        raise Exception('Houston, we have a problem')    
-    
-    #print('OrgType = {}, Indus = {}, Domain = {}, value = {}, '.format(str_org_type, str_industry, str_email_domain[-4:], value))
-    return value
+def get_keep_list(column_name):
+    if column_name in dict_keep_lists.keys():
+        return dict_keep_lists[column_name]
+    else:
+        return []
 
-def assign_pub_private_sector(df):
-    #Determine who is public/private based off of org_type, industry and domain
-    df[COL_EMAIL_DOMAIN] = df[COL_EMAIL_DOMAIN].fillna('')
-    df[COL_INDUSTRY] = df[COL_INDUSTRY].fillna('')
-    df[COL_ORG_TYPE] = df[COL_ORG_TYPE].fillna('')
+def load_existing_projects(OPTIONS_ARRAY):
+    if len(OPTIONS_ARRAY) == 0:
+        OPTIONS_ARRAY = np.array([])
+        dirs = os.scandir(path = FLDR_SAMPLING)
+        for entry in dirs :
+            if entry.is_dir() and entry.name not in ARRAY_FOLDERS_TO_IGNORE:
+                OPTIONS_ARRAY = np.append (OPTIONS_ARRAY, [entry.name])
+    
+    return OPTIONS_ARRAY
 
-    df[COL_PUB_PRIVATE_CALCULATED] = df.apply(lambda x: __assign_assign_pub_private_sector(x[COL_ORG_TYPE].strip(), x[COL_INDUSTRY].strip(), x[COL_EMAIL_DOMAIN].strip()), axis=1)
+def build_dropdown(option_array, option_selected = None, label = 'Please Select'):
+    #if new_option:
+    #    option_array = np.insert (option_array, 0, new_option)
+    #    #option_array = np.append (option_array, new_option)
     
-    print('Assigned Pub/Private Sector.')
+    if label is None:
+        label = 'Please Select'
     
+    if option_selected:
+        dd = widgets.Dropdown(
+            options=option_array,
+            value=option_selected,
+            description=label,
+            disabled=False,
+            layout=widgets.Layout(width="500px")
+        )
+    else:
+        dd = widgets.Dropdown(
+            options=option_array,
+            description=label,
+            disabled=False,
+            layout=widgets.Layout(width="50%")
+        )
+    
+    return dd
+
+def load_csv(file_name):
+    df = pd.read_csv (file_name , sep=CSV_SEPARATOR)
+    df.columns= df.columns.str.lower()
+    # convert column to datetime
+    if COL_EXPIRY_DATE in df.columns:
+        df[COL_EXPIRY_DATE] = pd.to_datetime(df[COL_EXPIRY_DATE])
+
     return df
-
-def __assign_title(str_job_title, str_boss_title, str_num_overseen, mgmt_titles):
-
-    title = 'Worker'
-    try:
-        """
-        if str_job_title.lower() in mgmt_titles:
-            title = 'Manager'
-        elif str_job_title == "Manager, Generalist" and str_boss_title.lower() != "administrator" and str_boss_title.lower() != "hr manager" and str_num_overseen != "0":
-            title = 'Manager'
-        """
-        if len(str_job_title) == 0:
-            title = 'Worker'
-        elif str_job_title.lower() in mgmt_titles:
-            title = 'Manager'
-        elif len(str_boss_title) == 0 or len(str_num_overseen) == 0:
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and (str_boss_title.lower() == "administrator" or str_boss_title.lower() == "hr manager" or str_num_overseen == "0"):
-            title = 'Worker'
-        elif str_job_title == "Manager, Generalist" and str_boss_title.lower() != "administrator" and str_boss_title.lower() != "hr manager" and str_num_overseen != "0":
-            title = 'Manager'
-        else:
-            title = 'Worker'
-    except:
-        raise Exception('Houston, we have a problem')
-
-    return title
-
-def assign_title(df):
-    #Who is a manager vs. a worker> To align with BLS, if they have a manager job title, Manager, otherwise worker. 
-    #Our category "Manager, Generalist" is ambiguous, so if they report to a manager or administrator, or have no direct reports we treat them as worker
-            
-    mgmt_titles = ["Partner, Principal","President, CEO, Chairman","CHRO, CHCO","VP or Asst/Assoc VP","Asst. or Assoc. Vice Pres","Director or Asst/Assoc Director","Supervisor"]
-    mgmt_titles = [title.lower() for title in mgmt_titles]
-
-    #nonmgmtTitles = ["Consultant","Coordinator","Legal Counsel","Representative, Associate","Specialist","Other","Administrative Assistant","Administrator"]
-    #nonmgmtTitles = [title.lower() for title in nonmgmtTitles]
-
-    df[COL_JOB_TITLE] = df[COL_JOB_TITLE].fillna('')
-    df[COL_BOSS_TITLE] = df[COL_BOSS_TITLE].fillna('')
-    df[COL_NUM_OVERSEEN] = df[COL_NUM_OVERSEEN].fillna('')
-
-    df[COL_TITLE_CALCULATED] = df.apply(lambda x: __assign_title(x[COL_JOB_TITLE].strip(), x[COL_BOSS_TITLE].strip(), x[COL_NUM_OVERSEEN].strip(), mgmt_titles), axis=1)
     
-    print('Assigned Manager/Worker Title.')
-    
-    return df
+    #print('There are {} email addresses available for use.'.format(len(df_all_active_roster)))
 
-def __assign_expiration_range(str_expiry_date):
-    str_expires_in = 'unkown'
-    try:
-        if str_expiry_date < datetime.datetime.now():
-            if str_expiry_date >= (datetime.datetime.now() - datetime.timedelta(days=30)):
-                str_expires_in = EXPIRED_WITHIN_30
-            elif str_expiry_date >= (datetime.datetime.now() - datetime.timedelta(days=90)):
-                str_expires_in = EXPIRED_WITHIN_90
-            elif str_expiry_date >= (datetime.datetime.now() - datetime.timedelta(days=180)):
-                str_expires_in = EXPIRED_WITHIN_180
-            else:
-                str_expires_in = EXPIRED_IN_MORE_THAN_180
-        if str_expiry_date >= datetime.datetime.now():
-            if str_expiry_date <= (datetime.datetime.now() + datetime.timedelta(days=30)):
-                str_expires_in = EXPIRES_WITHIN_30
-            elif str_expiry_date <= (datetime.datetime.now() + datetime.timedelta(days=90)):
-                str_expires_in = EXPIRES_WITHIN_90
-            elif str_expiry_date <= (datetime.datetime.now() + datetime.timedelta(days=180)):
-                str_expires_in = EXPIRES_WITHIN_180
-            else:
-                str_expires_in = EXPIRES_IN_MORE_THAN_180
-    except:
-        raise Exception('Houston, we have a problem')
-    if str_expires_in == 'unkown':
-        print('Date= {}, expires_in= {}'.format(str_expiry_date, str_expires_in))
-    return str_expires_in
-
-def assign_expiration_range(df):
-    #EXPIRY_DATE = 'expiration_date'
-    #EXPIRY_RANGE_CALCULATED = 'expiration_range_calculated'
-
-    df[COL_EXPIRY_DATE] = df[COL_EXPIRY_DATE].fillna('')
-
-    df[COL_EXPIRY_RANGE_CALCULATED] = df.apply(lambda x: __assign_expiration_range(x[COL_EXPIRY_DATE]), axis=1)
-    
-    print('Assigned expiration range.')
-    
-    return df
 
 def keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, bkeep_all = False):
     action_name  = column_to_group_by + '_'
 
-    #dict_filter_by = {}
     dict_filter_by[action_name + 'label'] = widgets.HTML()
     dict_filter_by[action_name + 'label'].value = '<center><h3>Your current record count is <u>{}</u></h3></center>'.format(len(df))
     dict_filter_by[action_name + 'results_widgets'] = widgets.HBox([dict_filter_by[action_name + 'label']])
@@ -242,7 +226,7 @@ def keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, b
     return dict_filter_by[action_name + 'qgrid_sheet_to_keep']
 
 def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array, bkeep_all = False):
-    msg_html = '<h1>Important:</h1></br><b>Please examine the list below and check/uncheck any record types you do not wish to use.</br></br>NOTE: </b><span>The default list has already been pre-selected.</span>'
+    msg_html = '<h1>Important:</h1></br><b>Please examine the list below and check/uncheck any record types you do not wish to use.</br></br>NOTE: </b><span>The default keep list has already been pre-selected.</span>'
     display(HTML(msg_html))
     
     if column_to_count is None:
@@ -259,6 +243,7 @@ def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array,
     else:
         df_possible[COL_KEEP] = False               # set default value to False
         df_possible.astype({COL_KEEP: 'bool'}).dtypes
+        
         # update 'keep' column based on presence of MEMBERSHIP_ITEM in keep list
         for i, row in df_possible.iterrows():
             bKeep = False
@@ -270,9 +255,6 @@ def __keep_grid_show_filter(df, column_to_group_by, column_to_count, keep_array,
 
         df_possible = df_possible.sort_values([COL_KEEP, column_to_group_by], ascending = (True, True))
         
-    #sheet_keep = from_dataframe(df_possible)
-    #return sheet_keep
-
     qgrid_widget = qgrid.show_grid(df_possible, show_toolbar=False, grid_options={"maxVisibleRows": 10})
     return qgrid_widget
 
@@ -297,12 +279,3 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False)
     else:
         return df_filtered_list
 
-def load_csv(file_name):
-    df = pd.read_csv (file_name , sep=CSV_SEPARATOR)
-    df.columns= df.columns.str.lower()
-    # convert column to datetime
-    df[COL_EXPIRY_DATE] = pd.to_datetime(df[COL_EXPIRY_DATE])
-
-    return df
-    
-    print('There are {} email addresses available for use.'.format(len(df_all_active_roster)))
