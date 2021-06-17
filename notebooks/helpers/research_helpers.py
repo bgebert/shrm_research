@@ -4,6 +4,7 @@ import pandas as pd
 import qgrid
 import datetime
 import glob
+from datetime import datetime
 
 from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
@@ -40,6 +41,8 @@ CSV_SEPARATOR = ','     # '\t'
 
 FLDR_MEMBER_LISTS = 'Member Lists'
 FLDR_SAMPLING = '../sampling'
+current = datetime.now()
+FLDR_MARKET_RESEARCH = os.path.join('../market_research', '{}'.format(current.year), '{} - STUDIES'.format(current.year))
 FLDR_NOTEBOOKS = '../notebooks'
 
 FNAME_ACTIVE_ROSTER_CSV = 'all_active.csv'
@@ -155,10 +158,13 @@ def get_keep_list(column_name):
     else:
         return []
 
-def load_existing_projects(OPTIONS_ARRAY):
+def load_existing_projects(OPTIONS_ARRAY, bGeneralResearch=True):
     if len(OPTIONS_ARRAY) == 0:
         OPTIONS_ARRAY = np.array([])
-        dirs = os.scandir(path = FLDR_SAMPLING)
+        if bGeneralResearch:
+            dirs = os.scandir(path = FLDR_SAMPLING)
+        else:
+            dirs = os.scandir(path = FLDR_MARKET_RESEARCH)
         for entry in dirs :
             if entry.is_dir() and entry.name not in ARRAY_FOLDERS_TO_IGNORE:
                 OPTIONS_ARRAY = np.append (OPTIONS_ARRAY, [entry.name])
