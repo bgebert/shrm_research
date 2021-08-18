@@ -17,7 +17,7 @@ A Python environment, and collection of Jupyter Notebooks, to help the research 
 1. Open a command prompt and paste the following: docker run --name research_app -it --volume '/Volumes/share/Departments/Research & Insights/Market Research':/home/jovyan/market_research --volume '/Volumes/share/Departments/Research & Insights/Sampling':/home/jovyan/sampling --volume '/Volumes/share/Departments/Research & Insights/Sampling/notebooks/**your_username**':/home/jovyan/notebooks -p 8888:8888 shrm_research
 
 ### for Brad
-1. Open a command prompt and paste the following: --volume '/Volumes/share/Departments/Research & Insights/Market Research':/home/jovyan/market_research --volume '/Volumes/share/Departments/Research & Insights/Sampling':/home/jovyan/sampling --volume '/Volumes/share/Departments/Research & Insights/Sampling/notebooks/bgebert':/home/jovyan/notebooks --volume ~/Scripts/SHRM/shrm_research/notebooks:/home/jovyan/source_notebooks -p 8888:8888 shrm_research
+1. Open a command prompt and paste the following: docker run --name research_app -it --volume '/Volumes/share/Departments/Research & Insights/Market Research':/home/jovyan/market_research --volume '/Volumes/share/Departments/Research & Insights/Sampling':/home/jovyan/sampling --volume '/Volumes/share/Departments/Research & Insights/Sampling/notebooks/bgebert':/home/jovyan/notebooks --volume ~/Scripts/SHRM/shrm_research/notebooks:/home/jovyan/source_notebooks -p 8888:8888 shrm_research
 
 ## Running Docker
 1. Open a command prompt, and run: docker start research_app
