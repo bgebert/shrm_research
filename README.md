@@ -3,9 +3,9 @@ A Python environment, and collection of Jupyter Notebooks, to help the research 
 
 ## Installing the Docker image
 1. Go to https://docs.docker.com/docker-for-windows/install/ and understand the process.  You may need to create a support ticket.
-    A. Download the following from Git:  https://github.com/bgebert/shrm_research/archive/refs/heads/main.zip
-    B. Extract the contents of the zip file
-2. From a command prompt, or terminal wihndow, navigate to where you unzipped main.zip
+2. Download the following from Git:  https://github.com/bgebert/shrm_research/archive/refs/heads/main.zip
+3. Extract the contents of the zip file
+4. From a command prompt, or terminal wihndow, navigate to where you unzipped main.zip
 
 #build container from jupyter/scipy-notebook:latest
 docker build -t shrm_research .
