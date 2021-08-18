@@ -21,4 +21,4 @@ A Python environment, and collection of Jupyter Notebooks, to help the research 
 
 ## Running Docker
 1. Open a command prompt, and run: docker start research_app
-2. Open Google Chrome and go to http://localhost:8888/tree?
+2. Open Google Chrome and go to http://localhost:8888/tree
