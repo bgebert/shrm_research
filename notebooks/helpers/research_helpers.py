@@ -18,10 +18,18 @@ ARRAY_FOLDERS_TO_IGNORE = ['.ipynb_checkpoints',
                            'About the Member Population', 
                            'Archive', 
                            'AllActive', 
+                           'Attendee Lists', 
                            'Brad', 
+                           'Bradley', 
+                           'Bradley2',
+                           'COVID19 Projects', 
+                           'Deborah', 
+                           'Industry Comparison', 
                            'Member Lists', 
+                           'MIsc', 
                            'notebooks', 
                            'Opt Out Lists', 
+                           'Other Lists', 
                            'Sampling R Code']
 
 #OPTIONS_CSV_COLUMNS = []
@@ -40,10 +48,12 @@ dict_filter_by = {}     # Used by keep_grid_show_filter
 CSV_SEPARATOR = ','     # '\t'
 
 FLDR_MEMBER_LISTS = 'Member Lists'
-FLDR_SAMPLING = '../sampling'
+#FLDR_SAMPLING = '../sampling'
+FLDR_SAMPLING = '/media/Sampling'
+FLDR_ROOT = '/media/Research'
 current = datetime.now()
-FLDR_MARKET_RESEARCH = os.path.join('../market_research', '{}'.format(current.year), '{} - STUDIES'.format(current.year))
-FLDR_NOTEBOOKS = '../notebooks'
+FLDR_MARKET_RESEARCH = os.path.join(FLDR_ROOT, 'Market Research', '{}'.format(current.year), '{} - STUDIES'.format(current.year))
+FLDR_NOTEBOOKS = '/media/Sampling/notebooks'
 
 FNAME_ACTIVE_ROSTER_CSV = 'all_active.csv'
 
@@ -163,11 +173,14 @@ def load_existing_projects(OPTIONS_ARRAY, bGeneralResearch=True):
         OPTIONS_ARRAY = np.array([])
         if bGeneralResearch:
             dirs = os.scandir(path = FLDR_SAMPLING)
+            OPTIONS_ARRAY = np.append (OPTIONS_ARRAY, ['<By Sample Date>'])
         else:
             dirs = os.scandir(path = FLDR_MARKET_RESEARCH)
         for entry in dirs :
             if entry.is_dir() and entry.name not in ARRAY_FOLDERS_TO_IGNORE:
                 OPTIONS_ARRAY = np.append (OPTIONS_ARRAY, [entry.name])
+            #if entry.is_dir() and entry.name[0:4].isnumeric() and entry.name not in ARRAY_FOLDERS_TO_IGNORE:
+            #    OPTIONS_ARRAY = np.append (OPTIONS_ARRAY, [entry.name])
     
     return OPTIONS_ARRAY
 
@@ -278,7 +291,7 @@ def keep_grid_apply_filter(qgrid_sheet_to_keep, col_name, df, bShowUpdate=False)
 
     if bShowUpdate:
         print('The filter was successfully applied to the data frame.')
-        print('There are now {} out of {} items available for use.'.format(len_after_filter, len_before_filter))
+        print('{:,} out of {:,} available items were selected for use.'.format(len_after_filter, len_before_filter))
 
     if bShowUpdate:
         return df_filtered_list, arr_keep
